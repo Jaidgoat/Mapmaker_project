@@ -1,0 +1,125 @@
+def affiche_sous_menu_tuiles(compatibles, dico):
+    """
+    Affiche un menu carré avec les tuiles compatibles et un message.
+    Si plus de 8 tuiles, permet de défiler avec les flèches gauche/droite.
+    Appuyer sur 'i' masque/affiche le menu.
+    """
+    import random
+    taille = 75
+    marge = 10
+    nb_col = 4
+    nb_lig = 2
+    nb_par_page = nb_col * nb_lig
+    x_menu = 200
+    y_menu = 250
+
+    hauteur_message = 40
+    largeur_menu = nb_col * (taille + marge) - marge + 60
+    y_menu_fond = y_menu - 50
+    hauteur_fond = nb_lig * (taille + marge) - marge + 5 + hauteur_message + 20
+
+    page = 0
+    nb_pages = (len(compatibles) + nb_par_page - 1) // nb_par_page
+
+    def affiche_page(page):
+        fltk.efface("menu_carre")
+        fltk.efface("menu_carre_border")
+        fltk.efface("menu_message")
+        for idx in range(nb_par_page):
+            fltk.efface(f"sousmenu_{idx}")
+        # Fond et bordure
+        fltk.rectangle(
+            x_menu-30, y_menu_fond,
+            x_menu-30 + largeur_menu,
+            y_menu_fond + hauteur_fond,
+            couleur="white", remplissage="white", epaisseur=3, tag="menu_carre"
+        )
+        fltk.rectangle(
+            x_menu-30, y_menu_fond,
+            x_menu-30 + largeur_menu,
+            y_menu_fond + hauteur_fond,
+            couleur="black", epaisseur=3, tag="menu_carre_border"
+        )
+        # Message
+        fltk.texte(
+            x_menu-30 + largeur_menu//2, y_menu_fond + 22,
+            "Choisissez la tuile que vous voulez placer !",
+            ancrage="center", taille=13, tag="menu_message"
+        )
+        # Affichage des tuiles de la page courante
+        positions.clear()
+        start = page * nb_par_page
+        end = min(start + nb_par_page, len(compatibles))
+        tuiles_affichees = compatibles[start:end]
+        for idx, tuile in enumerate(tuiles_affichees):
+            col = idx % nb_col
+            lig = idx // nb_col
+            x = x_menu + col * (taille + marge)
+            y = y_menu + lig * (taille + marge)
+            chemin = f"{os.getcwd()}\\fichiers fournis\\{dico[tuile]}"
+            fltk.image(x, y, chemin, ancrage="nw", largeur=taille, hauteur=taille, tag=f"sousmenu_{idx}")
+            positions.append((x, y, x + taille, y + taille, tuile))
+        # Flèches de navigation si besoin
+        if nb_pages > 1:
+            if page > 0:
+                fltk.texte(x_menu-40, y_menu+taille, "<", ancrage="center", taille=30, tag="menu_carre")
+            if page < nb_pages-1:
+                fltk.texte(x_menu-30 + largeur_menu+10, y_menu+taille, ">", ancrage="center", taille=30, tag="menu_carre")
+        fltk.mise_a_jour()
+
+    positions = []
+    menu_visible = True
+
+    affiche_page(page)
+
+    while True:
+        ev = fltk.attend_ev()
+        tev = fltk.type_ev(ev)
+        if tev == "ClicGauche" and menu_visible:
+            x, y = fltk.abscisse(ev), fltk.ordonnee(ev)
+            # Navigation gauche
+            if nb_pages > 1 and page > 0 and x_menu-60 < x < x_menu-10 and y_menu+taille < y < y_menu+taille+40:
+                page -= 1
+                affiche_page(page)
+                continue
+            # Navigation droite
+            if nb_pages > 1 and page < nb_pages-1 and x_menu-10 + largeur_menu < x < x_menu+40 + largeur_menu and y_menu+taille < y < y_menu+taille+40:
+                page += 1
+                affiche_page(page)
+                continue
+            # Sélection tuile
+            for idx, (x1, y1, x2, y2, tuile) in enumerate(positions):
+                if x1 <= x <= x2 and y1 <= y <= y2:
+                    # Efface le menu
+                    for idx2 in range(nb_par_page):
+                        fltk.efface(f"sousmenu_{idx2}")
+                    fltk.efface("menu_carre")
+                    fltk.efface("menu_carre_border")
+                    fltk.efface("menu_message")
+                    return tuile
+        elif tev == "Touche":
+            touche = fltk.touche(ev)
+            if touche == "Escape":
+                for idx in range(nb_par_page):
+                    fltk.efface(f"sousmenu_{idx}")
+                fltk.efface("menu_carre")
+                fltk.efface("menu_carre_border")
+                fltk.efface("menu_message")
+                return None
+            elif touche == "i":
+                if menu_visible:
+                    for idx in range(nb_par_page):
+                        fltk.efface(f"sousmenu_{idx}")
+                    fltk.efface("menu_carre")
+                    fltk.efface("menu_carre_border")
+                    fltk.efface("menu_message")
+                    menu_visible = False
+                else:
+                    affiche_page(page)
+                    menu_visible = True
+            elif touche == "Right" and page < nb_pages-1:
+                page += 1
+                affiche_page(page)
+            elif touche == "Left" and page > 0:
+                page -= 1
+                affiche_page(page)
